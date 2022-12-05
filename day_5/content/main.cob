@@ -18,93 +18,128 @@
 001500                   DEPENDING ON infile-record-length.
 001600 WORKING-STORAGE SECTION.
 000000 01  boxes.
-000000     05 box-row OCCURS 16 TIMES.
-000000        10 box-value PIC X OCCURS 16 TIMES.
-000000     05 box-row-length PIC S9(07) COMP-5 OCCURS 16 TIMES.
+000000     05 box-col OCCURS 16 TIMES.
+000000        10 box-value PIC X OCCURS 64 TIMES.
+000000     05 box-col-length PIC S9(07) COMP-5 OCCURS 16 TIMES.
+000000 01  crates.
+000000     05 crate-col OCCURS 16 TIMES.
+000000        10 crate-value PIC X OCCURS 64 TIMES.
+000000     05 crate-col-length PIC S9(07) COMP-5 OCCURS 16 TIMES.
 000000 01  boxes-length PIC S9(07) COMP-5.
 000000 01  boxes-row PIC S9(07) COMP-5.
 000000 01  boxes-col PIC S9(07) COMP-5.
 000000 01  infile-record-length PIC S9(07) COMP-5.
 000000 01  line-index PIC S9(07) COMP-5.
 000000 01  index-value PIC S9(07) COMP-5.
-000000 01  low-one PIC S9(07) COMP-5.
-000000 01  high-one PIC S9(07) COMP-5.
-000000 01  low-two PIC S9(07) COMP-5.
-000000 01  high-two PIC S9(07) COMP-5.
-000000 01  sum-one PIC S9(07) COMP-5.
-000000 01  sum-two PIC S9(07) COMP-5.
-000000 01  out-val.
-000000     05 out-data PIC X OCCURS 10 TIMES.
+000000 01  move-amount PIC S9(07) COMP-5.
+000000 01  move-source PIC S9(07) COMP-5.
+000000 01  move-dest PIC S9(07) COMP-5.
 000700 PROCEDURE DIVISION.
 000000     OPEN INPUT  INFILE
 000000	   MOVE 16 TO boxes-row
 000000     PERFORM UNTIL EXIT
-000000         READ INFILE AT END 
-000000             DISPLAY "END"
-000000         END-READ
-000000         IF infile-data(2) = '1' THEN
-000000             EXIT PERFORM
-000000         END-IF
-000000         PERFORM PARSE-BOX-COL
-000000         ADD -1 TO boxes-row
+000000     READ INFILE AT END 
+000000     DISPLAY "END"
+000000     END-READ
+000000     IF infile-data(2) = '1' THEN
+000000     EXIT PERFORM
+000000     END-IF
+000000     PERFORM PARSE-BOX-ROW
+000000     ADD -1 TO boxes-row
 000000     END-PERFORM
 000000     MOVE infile-data(infile-record-length - 1) TO boxes-length
-000000     MOVE 1 TO boxes-row
-000000     PERFORM COMPACT-BOX-ROW
+000000     MOVE 1 TO boxes-col
+000000     PERFORM UNTIL boxes-col > boxes-length
+000000     PERFORM COMPACT-BOX-COL
+000000     ADD 1 TO boxes-col
+000000     END-PERFORM
+000000     MOVE boxes TO crates
+000000     READ INFILE
+000000     PERFORM UNTIL EXIT
+000000     READ INFILE AT END
+000000     EXIT PERFORM
+000000     END-READ
+000000     SET line-index TO 6
+000000     PERFORM NUMBER-GET
+000000     MOVE index-value TO move-amount
+000000     ADD 6 TO line-index
+000000     PERFORM NUMBER-GET
+000000     MOVE index-value TO move-source
+000000     ADD 4 TO line-index
+000000     PERFORM NUMBER-GET
+000000     MOVE index-value TO move-dest
+000000     MOVE move-amount TO index-value
+000000     PERFORM until move-amount = 0
+000000     ADD 1 TO box-col-length(move-dest)
+000000     ADD 1 TO crate-col-length(move-dest)
+000000     MOVE box-value(move-source, box-col-length(move-source))
+000000          TO box-value(move-dest, box-col-length(move-dest))
+000000     MOVE ' ' TO box-value(move-source, 
+000000          box-col-length(move-source))
+000000     MOVE crate-value(move-source, 
+000000       crate-col-length(move-source) - move-amount + 1)
+000000       TO crate-value(move-dest, crate-col-length(move-dest))
+000000     MOVE ' ' TO crate-value(move-source, 
+000000          crate-col-length(move-source) - move-amount + 1)
+000000     SUBTRACT 1 FROM box-col-length(move-source)
+000000     SUBTRACT 1 FROM move-amount
+000000     END-PERFORM
+000000     SUBTRACT index-value FROM crate-col-length(move-source)
+000000     END-PERFORM
+000000     SET boxes-col TO 1
+000000     PERFORM UNTIL boxes-col = boxes-length
+000000     DISPLAY box-col(boxes-col)(box-col-length(boxes-col):1) 
+000000             WITH NO ADVANCING
+000000     ADD 1 TO boxes-col
+000000     END-PERFORM
+00000      DISPLAY box-col(boxes-col)(box-col-length(boxes-col):1) 
+000000     SET boxes-col TO 1
+000000     PERFORM UNTIL boxes-col = boxes-length
+000000     DISPLAY crate-col(boxes-col)(crate-col-length(boxes-col):1) 
+000000             WITH NO ADVANCING
+000000     ADD 1 TO boxes-col
+000000     END-PERFORM
+00000      DISPLAY crate-col(boxes-col)(crate-col-length(boxes-col):1) 
 000000     CLOSE INFILE
 000900     STOP RUN.
 000000     NUMBER-GET.
-000000     ADD 1 TO line-index
 000000     MOVE line-index TO index-value
 000000     PERFORM UNTIL 
-000000         infile-data(line-index) = '-' or
-000000         infile-data(line-index) = ',' or
+000000         infile-data(line-index) = ' ' or
 000000         line-index = infile-record-length + 1
 000000     ADD 1 TO line-index
 000000     END-PERFORM
 000000     MOVE infile-record(index-value:line-index - index-value)
 000000          TO index-value
 000000     EXIT PARAGRAPH.
-000000     PARSE-BOX-COL.
+000000     PARSE-BOX-ROW.
 000000     MOVE 1 TO line-index
 000000     MOVE 1 TO boxes-col
 000000     PERFORM UNTIL line-index > infile-record-length
 000000     IF infile-data(line-index) = '[' THEN
-000000     ADD 1 TO line-index
-000000     MOVE infile-data(line-index) 
+000000     MOVE infile-data(line-index + 1) 
 000000          TO box-value(boxes-col, boxes-row)
-000000     ADD 3 TO line-index
-000000     ELSE
-000000     --HERE-HERE-HERE
-000000     ADD 4 TO line-index
 000000     END-IF
+000000     ADD 4 TO line-index
 000000     ADD 1 TO boxes-col
 000000     END-PERFORM
 000000     EXIT PARAGRAPH.
-000000     PRINT-NUMBER.
-000000     IF index-value = 0 then
-000000     DISPLAY '0'
-000000     ELSE
-000000     MOVE index-value TO out-val(1:7)
-000000     MOVE 1 to line-index
-000000     PERFORM UNTIL (not out-data(line-index) = '0')
-000000     ADD 1 to line-index
+000000     COMPACT-BOX-COL.
+000000     SET boxes-row TO 1
+000000     PERFORM UNTIL not (box-value(boxes-col, boxes-row) = ' ')
+000000     ADD 1 to boxes-row
 000000     END-PERFORM
-000000     DISPLAY out-val(line-index:8 - line-index)
-000000     END-IF
-000000     EXIT PARAGRAPH.
-000000     COMPACT-BOX-ROW.
-000000     SET box-row-length(boxes-row) TO 0
-000000     SET boxes-col TO 17
-000000     PERFORM UNTIL box-row-length(boxes-row) >= boxes-col
-000000     MOVE box-value(boxes-row, boxes-col) 
-000000          TO box-value(boxes-row, box-row-length(boxes-row))
-000000     MOVE '-' TO box-value(boxes-row, boxes-col)
-000000     ADD 1 TO box-row-length(boxes-row)
-000000     SUBTRACT 1 FROM boxes-col
+000000     SET box-col-length(boxes-col) TO 1
+000000     PERFORM UNTIL boxes-row = 17
+000000     MOVE box-value(boxes-col, boxes-row) 
+000000          TO box-value(boxes-col, box-col-length(boxes-col))
+000000     MOVE ' '  TO box-value(boxes-col, boxes-row)
+000000     ADD 1 TO boxes-row
+000000     ADD 1 TO box-col-length(boxes-col)
 000000     END-PERFORM
-000000     SUBTRACT 1 FROM box-row-length(boxes-row)
-000000     DISPLAY box-row(boxes-row)
-000000     DISPLAY box-row-length(boxes-row)
+000000     PERFORM UNTIL not 
+000000         box-value(boxes-col, box-col-length(boxes-col)) = ' '
+000000     SUBTRACT 1 FROM box-col-length(boxes-col)
+000000     END-PERFORM
 000000     EXIT PARAGRAPH.
 000000  END PROGRAM cobmain.
