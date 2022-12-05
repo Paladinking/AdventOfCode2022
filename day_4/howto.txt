@@ -1,0 +1,3 @@
+cd /aoc/content
+ghc main.hs
+./main
