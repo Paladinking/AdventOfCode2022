@@ -1,0 +1,3 @@
+cd /aoc/content
+go build main.go
+./main
