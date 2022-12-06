@@ -1,0 +1,3 @@
+cd /aoc/content
+cobc main.cob -x
+./main
