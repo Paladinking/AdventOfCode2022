@@ -1,0 +1,2 @@
+cd /aoc/content
+sbcl --script main.lisp
