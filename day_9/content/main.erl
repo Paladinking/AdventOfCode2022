@@ -1,5 +1,9 @@
 -module(main). 
 -export([start/0]). 
+
+sign(N) when N < 0 -> -1;
+sign(N) when N > 0 -> 1;
+sign(N) when N == 0 -> 0.
 	
 moveRope({_, Amount}, Acc) when Amount == 0 -> Acc;
 moveRope({Dir, Amount}, {Visited, Rope}) -> 
@@ -17,29 +21,9 @@ moveRope({Dir, Amount}, {Visited, Rope}) ->
 				DeltaX = Px - X,
 				DeltaY = Py - Y,
 				Pos = if 
-					abs(DeltaX) == 2 -> 
-					{
-						X + DeltaX div 2,
-						case DeltaY of
-							0 -> Y;
-							1 -> Y + 1;
-							2 -> Y + 1;
-							-1 -> Y - 1;
-							-2 -> Y - 1
-						end
-					};
-					abs(DeltaY) == 2 -> 
-					{
-						case DeltaX of
-							0 -> X;
-							1 -> X + 1;
-							2 -> X + 1;
-							-1 -> X - 1;
-							-2 -> X - 1
-						end,
-						Y + DeltaY div 2
-					};
-					true -> 
+					(abs(DeltaX) == 2) or (abs(DeltaY) == 2) ->  
+						{X + sign(DeltaX), Y + sign(DeltaY)};
+					true ->
 						{X, Y}
 				end, 
 				{Pos, Pos}
