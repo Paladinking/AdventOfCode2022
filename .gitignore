@@ -2,4 +2,6 @@ main
 *.ali
 *.o
 *.hi
-*.so 
+*.so
+*.beam
+erl_crash.dump
