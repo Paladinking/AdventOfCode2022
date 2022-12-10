@@ -25,11 +25,9 @@ End Sub
 Do
 	Line Input #1, input_line
 	If Len(input_line) = 0 Then Exit Do
+	DoCycle(0, cycle, xreg, signal_sum, CRT())
 	If Left(input_line, 4) = "addx" Then
-		DoCycle(0, cycle, xreg, signal_sum, CRT())
 		DoCycle(ValInt(Mid(input_line, 5)), cycle, xreg, signal_sum, CRT())
-	Else 
-		DoCycle(0, cycle, xreg, signal_sum, CRT())
 	End If
 Loop
 Print Using "&"; signal_sum
