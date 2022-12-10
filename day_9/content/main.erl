@@ -36,10 +36,10 @@ moveRope({Dir, Amount}, {Visited, Rope}) ->
 start() -> 
 	case file:read_file("../input/input9.txt") of
 		{ok, Input} -> 
-			Lines = lists:map(fun(Ln) -> 
+			Lines = lists:map(fun(Line) -> 
 					{
-						lists:nth(1, Ln), 
-						element(1, string:to_integer(lists:sublist(Ln, 3, length(Ln))))
+						lists:nth(1, Line), 
+						element(1, string:to_integer(lists:sublist(Line, 3, length(Line))))
 					}
 				end, 
 				[binary_to_list(Line) || Line <- binary:split(Input, [<<"\n">>], [global]), Line /= <<>>]
