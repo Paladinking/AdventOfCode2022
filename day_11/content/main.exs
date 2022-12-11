@@ -1,41 +1,56 @@
 defmodule Monkey do
-	defstruct id: 0, items: [], newWorry: {:plus, 0}, test: 1, onTrue: 0 , onFalse: 0, inspects: 0
+	defstruct id: 0, items: {}, newWorry: {:plus, 0}, test: 1, onTrue: 0 , onFalse: 0
 end
 
 defmodule Main do
-	require Logger
-	
-	def doRounds(monkeys, n) when n == 0, do: monkeys
+	def traceItem(_, _, _, _, _, inspects, n) when n == 0 do
+		inspects
+	end
 
-	def doRounds(monkeys, n) do
-		{monkeys, added} = Enum.map_reduce(monkeys, %{}, fn monkey, added -> 
-				{added, i} = Stream.concat(monkey.items, Map.get(added, monkey.id, []))
-				|> Enum.reduce({Map.delete(added, monkey.id), monkey.inspects}, fn val, {added, i} ->
-					worry = case monkey.newWorry do
-						{:times, x} -> val * x
-						{:plus, x} -> val + x
-						:square -> val * val
-						:double -> val + val
-					end |> div(3)
-					nextMonkey = cond do
-						rem(worry, monkey.test) == 0 -> monkey.onTrue
-						true -> monkey.onFalse
-					end
-					{Map.put(added, nextMonkey, Map.get(added, nextMonkey, []) ++ [worry]), i + 1}
-				end)
-				{%{monkey | items: [], inspects: i}, added}
-			end
-		)
-		{monkeys, _} = Enum.map_reduce(monkeys, added, fn monkey, added -> 
-				{%{monkey | items: Map.get(added, monkey.id, [])}, Map.delete(added, monkey.id)}
-			end)
-		doRounds(monkeys, n - 1)
+	def traceItem(monkeys, val, pos, divider, mod, inspects, n) do
+		monkey = elem(monkeys, pos)
+		worry = case monkey.newWorry do
+				{ :times, x} -> val * x
+				{ :plus, x} -> val + x
+				:square -> val * val
+				:double -> val + val
+			end |> div(divider) |> rem(mod)
+		nextMonkey = cond do
+			rem(worry, monkey.test) == 0 -> monkey.onTrue
+			true -> monkey.onFalse
+		end
+		n = cond do
+			nextMonkey > pos -> n
+			nextMonkey < pos -> n - 1
+		end
+		traceItem(monkeys, worry, nextMonkey, divider, mod, Map.put(inspects, pos, Map.get(inspects, pos, 0) + 1), n)
 	end
 	
+	def traceItems(monkeys, items, divider, n) do
+		mod = Enum.reduce(monkeys, 1, fn monkey, prod -> prod * monkey.test end)
+		monkeys = List.to_tuple(monkeys)
+		Enum.reduce(items, %{}, fn {pos, val}, inspects -> 
+			traceItem(monkeys, val, pos, divider, mod, inspects, n)
+			end
+		)
+	end
+	
+	def topTwo(map) do
+		Enum.reduce(map, {0, 0}, fn {_, value}, {first, second} -> 
+				cond do
+					second >= value -> {first, second}
+					value > first -> {value, first}
+					true -> {first, value}
+				end
+			end
+		)
+	end
+	
+	
 	def start() do
-		indata = File.read!("../input/input_test.txt")
+		indata = File.read!("../input/input11.txt")
 		monkeys = String.split(indata, "\n\n") 
-			|> Stream.map(fn(line) ->
+			|> Enum.map(fn(line) ->
 					parts = List.to_tuple(String.split(line, "\n"))
 					%Monkey{
 						id: elem(parts, 0) |> String.slice(7..-2) |> String.to_integer,
@@ -44,8 +59,8 @@ defmodule Main do
 							case String.slice(elem(parts, 2), 23..-1) |> String.split(" ", parts: 2) do
 								["*", "old"] -> :square
 								["+", "old"] -> :double
-								["*", x] -> {:times, String.to_integer(x)}
-								["+", x] -> {:plus, String.to_integer(x)}
+								["*", x] -> { :times, String.to_integer(x)}
+								["+", x] -> { :plus, String.to_integer(x)}
 							end,
 						test: elem(parts, 3) |> String.slice(21..-1) |> String.to_integer,
 						onTrue: elem(parts, 4) |> String.slice(29..-1) |> String.to_integer,
@@ -53,15 +68,14 @@ defmodule Main do
 					}
 				end
 			)
-
-		{first, second} = doRounds(monkeys, 20) |> Enum.reduce({0, 0}, fn monkey, {first, second} -> 
-				cond do
-					second >= monkey.inspects -> {first, second}
-					monkey.inspects > first -> {monkey.inspects, first}
-					true -> {first, monkey.inspects}
-				end
+		items = Enum.reduce(monkeys, [], fn monkey, list -> 
+				list ++ Enum.map(monkey.items, fn x -> {monkey.id, x} end)
 			end
 		)
+
+		{first, second} = traceItems(monkeys, items, 3, 20) |> topTwo
+		IO.puts(first * second)
+		{first, second} = traceItems(monkeys, items, 1, 10000) |> topTwo
 		IO.puts(first * second)
 	end
 end
