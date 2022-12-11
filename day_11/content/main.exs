@@ -1,3 +1,5 @@
+#!/usr/bin/elixir
+
 defmodule Monkey do
 	defstruct id: 0, items: {}, newWorry: {:plus, 0}, test: 1, onTrue: 0 , onFalse: 0
 end
