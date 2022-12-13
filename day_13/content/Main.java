@@ -14,11 +14,12 @@ public class Main {
 	}
 
 	private static class NumberItem extends Item {
+
+		final private int value;
+
 		public NumberItem(String input) {
 			this.value = Integer.parseInt(input);
 		}
-
-		final private int value;
 
 		public int compare(Item right) {
 			return right.compareNumber(this);
@@ -29,7 +30,7 @@ public class Main {
 		}
 
 		public int compareList(ListItem left) {
-			return left.compare(new ListItem(this));
+			return new ListItem(this).compareList(left);
 		}
 	}
 
@@ -70,7 +71,7 @@ public class Main {
 		}
 
 		public int compareNumber(NumberItem left) {
-			return new ListItem(left).compare(this);
+			return this.compareList(new ListItem(left));
 		}
 
 		public int compareList(ListItem left) {
