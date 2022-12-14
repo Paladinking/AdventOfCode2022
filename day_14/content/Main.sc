@@ -13,7 +13,6 @@ object Main extends App {
 			return Some((sx + 1, sy + 1))
 		}
 		return None
-		
 	}
 
 	@scala.annotation.tailrec
