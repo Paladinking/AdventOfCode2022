@@ -1,0 +1,3 @@
+cd /aoc/content
+scalac Main.sc -d main.jar
+scala main.jar
