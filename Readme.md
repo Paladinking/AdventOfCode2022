@@ -17,12 +17,12 @@ Day 12: Lua
 Day 13: Java  
 Day 14: Scala  
 Day 15: C++  
-Day 16: Python  
+Day 16: Zig  
 Day 17: Swift  
-Day 18: Zig  
-Day 19: C  
+Day 18: Python  
+Day 19: Carbon  
 Day 20: Typescript  
-Day 21: Carbon  
+Day 21: C  
 Day 22: Vala  
 Day 23: C#  
 Day 24: Kotlin  
