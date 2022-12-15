@@ -5,3 +5,4 @@ main
 *.so
 *.beam
 erl_crash.dump
+*.jar 

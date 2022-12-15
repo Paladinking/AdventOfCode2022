@@ -28,9 +28,9 @@ object Main extends App {
 	}
 
 	def addSand(tiles : Set[(Int, Int)]) : Int = {
+		val maxY = tiles.foldLeft(0) {(max, v) => max.max(v._2)}
 		@scala.annotation.tailrec
 		def inner(tiles : Set[(Int, Int)], sum : Int) : Int = {
-			val maxY = tiles.foldLeft(0) {(max, v) => max.max(v._2)}
 			val pos = placeSand(tiles, (500, 0), maxY)
 			if (pos._2 > maxY) {
 				return sum
