@@ -50,9 +50,13 @@ pub fn openValvesElephant(valves : *std.StringHashMap(Valve), time1 : isize, tim
 			if (v1.value_ptr.flow != 0 and v2.value_ptr.flow != 0 and v1.value_ptr != v2.value_ptr) {
 				var delta1 = valve1.costs.get(&v1.value_ptr.name).? + 1;
 				var delta2 = valve2.costs.get(&v2.value_ptr.name).? + 1;
-				var res = openValvesElephant(valves, time1 - delta1, time2 - delta2, v1.value_ptr.name, v2.value_ptr.name);
-				if (res > max) {
-					max = res;
+				var delta3 = valve1.costs.get(&v2.value_ptr.name).? + 1;
+				var delta4 = valve2.costs.get(&v1.value_ptr.name).? + 1;
+				if (delta3 + delta4 >= delta1 + delta2) { 
+					var res = openValvesElephant(valves, time1 - delta1, time2 - delta2, v1.value_ptr.name, v2.value_ptr.name);
+					if (res > max) {
+						max = res;
+					}
 				}
 			}
 		}
@@ -69,6 +73,9 @@ fn visit(valves: *std.StringHashMap(Valve), pos : [2]u8, dest : [2]u8) ?isize {
 	var cur = valves.getPtr(&pos).?;
 	if (cur.open) {
 		return null;
+	}
+	if (cur.costs.get(&dest)) |cost| {
+		return cost;
 	}
 	cur.open = true;
 	var min : ?isize = null;
@@ -105,6 +112,7 @@ pub fn updateCosts(valves : *std.StringHashMap(Valve)) anyerror ! void {
 
 
 pub fn main() anyerror ! void {
+
 	var gp = std.heap.GeneralPurposeAllocator(.{ .safety = true }){};
 	defer _ = gp.deinit();
 	const allocator = gp.allocator();
@@ -161,7 +169,21 @@ pub fn main() anyerror ! void {
 	
 	
 	try updateCosts(&valves);
+	var done = false;
+	while (!done) {
+		done = true;
+		var itr = valves.iterator();
+		while (itr.next()) |valve| {
+			if (valve.value_ptr.flow == 0 and !('A' == valve.value_ptr.name[0] and 'A' == valve.value_ptr.name[1])) {
+				allocator.free(valve.value_ptr.tunnels);
+				valve.value_ptr.costs.deinit();
+				valves.removeByPtr(valve.key_ptr);
+				done = false;
+				break;
+			}
+			
+		}
+	}
 	std.debug.print("{?}\n", .{openValves(&valves, 30, "AA".*)});
 	std.debug.print("{?}\n", .{openValvesElephant(&valves, 26, 26, "AA".*, "AA".*)});
-   
 }
