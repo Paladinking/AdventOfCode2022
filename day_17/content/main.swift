@@ -1,33 +1,7 @@
 import Foundation
 
 let left = UInt8(ascii : "<")
-let right = UInt8(ascii : ">")
 let width = 7
-
-
-let contents = try! String(contentsOfFile: "../input/input17.txt")
-var directions : [UInt8] = Array(contents.utf8)
-if (directions[directions.count - 1]) == UInt8(ascii:"\n") {
-	directions.removeLast()
-}
-
-func printRow(_ grid : Set<Int>, _ row : Int) {
-	var s = ""
-	for x in 0...(width - 1) {
-		if (grid.contains(row * width + x)) {
-			s += "#"
-		} else {
-			s += "."
-		}
-	}
-	print(s)
-}
-
-func printGrid(_ grid : Set<Int>, _ cur_top : Int) {
-	for i in 0...cur_top {
-		printRow(grid, cur_top - i)
-	}
-}
 
 func compareRow(_ grid : Set<Int>, _ row1 : Int, _ row2 : Int) -> Bool {
 	for x in 0...(width - 1) {
@@ -42,31 +16,13 @@ func compareRow(_ grid : Set<Int>, _ row1 : Int, _ row2 : Int) -> Bool {
 	return true
 }
 
-func findNonRepeating(_ grid : Set<Int>, _ repeating_rows : Int) -> Int {
-	var repeat_start = 0
-	while true {
-		var done = true
-		for i in 0...(repeating_rows - 1) {
-			if !compareRow(grid, repeat_start + i, repeat_start + repeating_rows + i) {
-				done = false
-				break
-			}
-		}
-		if done {
-			return repeat_start
-		}
-		repeat_start += 1
-	}
-}
-
-
 func tryMove(rock : [[Bool]], newX : Int, newY : Int, grid : Set<Int>) -> Bool {
 	if (newX < 0 || newX + rock[0].count > width || newY < 0) {
 		return false
 	}
 	
-	for y in 0...(rock.count - 1) {
-		for x in 0...(rock[y].count - 1) {
+	for y in 0..<(rock.count) {
+		for x in 0..<(rock[y].count) {
 			if (rock[y][x] && grid.contains(newX + x + width * (newY + rock.count - y - 1))) {
 				return false;
 			}
@@ -76,7 +32,16 @@ func tryMove(rock : [[Bool]], newX : Int, newY : Int, grid : Set<Int>) -> Bool {
 }
 
 
-func addRock(rock : [[Bool]], direction_index : inout Int, cur_top : inout Int, grid : inout Set<Int>, directions : [UInt8]) {
+func addRock(
+	_ rocks : [[[Bool]]], 
+	_ current_rock : inout Int,
+	_ direction_index : inout Int, 
+	_ cur_top : inout Int, 
+	_ fallen : inout Int,
+	_ grid : inout Set<Int>, 
+	_ directions : [UInt8]
+) {
+	let rock = rocks[current_rock]
 	var rock_x = 2
 	var rock_y = cur_top + 4
 	while rock_y >= 0 {
@@ -93,8 +58,8 @@ func addRock(rock : [[Bool]], direction_index : inout Int, cur_top : inout Int, 
 		
 		direction_index = (direction_index + 1) % directions.count;
 		if (!tryMove(rock : rock, newX: rock_x, newY : rock_y - 1, grid : grid)) {
-			for y in 0...(rock.count - 1) {
-				for x in 0...(rock[y].count - 1) {
+			for y in 0..<(rock.count) {
+				for x in 0..<(rock[y].count) {
 					if (rock[y][x]) {
 						grid.insert(rock_x + x + width * (rock_y + rock.count - y - 1))
 					}
@@ -103,18 +68,44 @@ func addRock(rock : [[Bool]], direction_index : inout Int, cur_top : inout Int, 
 			if rock_y + rock.count - 1 > cur_top {
 				cur_top = rock_y + rock.count - 1
 			}
-			return;
+			break
 		}
 		rock_y -= 1
 	}
+	current_rock = (current_rock + 1) % rocks.count
+	fallen += 1
 }
 
+func adjustEdge(
+	_ rocks : [[[Bool]]],
+	_ direction_index : Int, 
+	_ cur_top : Int, 
+	_ current_rock : Int,
+	_ grid : Set<Int>, 
+	_ directions : [UInt8]
+) -> Int {
+	var fallen = 0
+	var di = direction_index
+	var ct = cur_top
+	var new_grid = grid
+	var cr = current_rock
+	while ct - cur_top == 0 {
+		addRock(rocks, &cr, &di, &ct, &fallen, &new_grid, directions)
+	}
+	return fallen - 1
+}
+
+let contents = try! String(contentsOfFile: "../input/input17.txt")
+var directions : [UInt8] = Array(contents.utf8)
+if (directions[directions.count - 1]) == UInt8(ascii:"\n") {
+	directions.removeLast()
+}
 
 let rocks : [[[Bool]]] = [
-	[[true, true, true, true]],  // 4x1
-	[[false, true, false], [true, true, true], [false, true, false]], // +
-	[[false, false, true], [false, false, true], [true, true, true]], // J
-	[[true], [true], [true], [true]], // 1x4
+	[[true, true, true, true]],
+	[[false, true, false], [true, true, true], [false, true, false]],
+	[[false, false, true], [false, false, true], [true, true, true]],
+	[[true], [true], [true], [true]],
 	[[true, true], [true, true]]
 ]
 
@@ -125,19 +116,21 @@ var direction_index = 0
 var cur_top = -1
 var fallen = 0
 
-let initial_iterations = directions.count * 25
+let target = 2022
+let initial_iterations = max(directions.count * 10, target)
 
 while (fallen < initial_iterations) {
-	addRock(rock : rocks[current_rock], direction_index: &direction_index, cur_top: &cur_top, grid : &grid, directions: directions)
-	current_rock = (current_rock + 1) % rocks.count
-	fallen += 1
+	addRock(rocks, &current_rock, &direction_index, &cur_top, &fallen, &grid, directions)
+	if (fallen == target) {
+		print(cur_top + 1)
+	}
 }
 
+for _ in 1..<(1 + adjustEdge(rocks, direction_index, cur_top, current_rock, grid, directions)) {
+	addRock(rocks, &current_rock, &direction_index, &cur_top, &fallen, &grid, directions)
+}
 
-
-var repeating_rows = 10// 2694, 1722
-print("starting repeat check")
-
+var repeating_rows = 1
 
 while true  {
 	var done = true
@@ -155,24 +148,18 @@ while true  {
 }
 
 let top = cur_top
-var repeating_blocks = 0
+var repeating_blocks = fallen
+
 while (cur_top - top <= repeating_rows) {
-	addRock(rock : rocks[current_rock], direction_index: &direction_index, cur_top: &cur_top, grid : &grid, directions: directions)
-	current_rock = (current_rock + 1) % rocks.count
-	repeating_blocks += 1
+	addRock(rocks, &current_rock, &direction_index, &cur_top, &fallen, &grid, directions)
 }
-repeating_blocks -= 1
-print(repeating_rows, repeating_blocks)
-// 1561739130391
-// 1561739130391
-// 1561739130391
+repeating_blocks = fallen - repeating_blocks - 1
+
 let remaining = 1000000000000 - fallen
 var tail = remaining - repeating_blocks * (remaining / repeating_blocks)
-print("Tail=", tail, "Remaining=", remaining, "Fallen=", fallen,"Repeating_rows=", repeating_rows)
 while tail > 0 {
-	addRock(rock : rocks[current_rock], direction_index: &direction_index, cur_top: &cur_top, grid : &grid, directions: directions)
-	current_rock = (current_rock + 1) % rocks.count
+	addRock(rocks, &current_rock, &direction_index, &cur_top, &fallen, &grid, directions)
 	tail -= 1
 }
 
-print(cur_top + (remaining / repeating_blocks) * repeating_rows - repeating_rows)
+print(1 + cur_top + (remaining / repeating_blocks) * repeating_rows)
