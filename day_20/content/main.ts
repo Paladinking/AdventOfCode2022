@@ -56,10 +56,8 @@ fs.readFile('../input/input20.txt', 'utf8', (err : string, data : string) => {
 	}
 	let enc_numbers : [number, number][] = numbers.map((pair : [number, number]) => [pair[0] * 811589153, pair[1]]);
 	mix(numbers);
-
-
 	
-	console.log('\x1b[76m%s\x1b[0m', findCoords(numbers));
+	console.log('\x1b[37m%s\x1b[0m', findCoords(numbers));
 	for (let i = 0; i < 10; i++) {
 		mix(enc_numbers);
 	}
