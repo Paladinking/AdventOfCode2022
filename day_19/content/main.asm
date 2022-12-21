@@ -1,6 +1,50 @@
 default rel
 
-section .rodata            ; .rodata is best for constants, not .data
+%define SYS_READ 0
+%define SYS_WRITE 1
+%define SYS_OPEN 2
+%define SYS_CLOSE 3
+%define SYS_SEEK 8
+%define SYS_MMAP 9
+%define SYS_MUNMAP 11
+%define SYS_BRK 12
+%define SYS_EXIT 60
+
+%define SEEK_SET 0
+%define SEEK_END 2
+
+%define STD_OUT 1
+
+%define O_RD_ONLY 0
+
+%define PROT_READ 1
+%define PROT_WRITE 2
+%define MAP_PRIVATE 2
+%define MAP_ANONYMOUS 32
+
+%define ORE 0
+%define CLAY 8
+%define OBSIDIAN 16
+%define GEODE 24
+
+%define NODE_ORE_ROBOT 0
+%define NODE_CLAY_ROBOT 8
+%define NODE_OBSIDIAN_ROBOT 16
+%define NODE_GEODE_ROBOT 24
+%define NODE_ORE 32
+%define NODE_CLAY 40
+%define NODE_OBSIDIAN 48
+%define NODE_GEODE 56
+%define NODE_TIME 64
+
+%define NODE_SIZE 9 * 8
+%define BLUEPRINT_SIZE 12 * 8
+%define BLUEPRINT_ORE 0
+%define BLUEPRINT_CLAY 24
+%define BLUEPRINT_OBSIDIAN 48
+%define BLUEPRINT_GEODE 72
+
+section .rodata
 	input_file: db '../input/input19.txt', 0
 
 section .bss
@@ -54,8 +98,8 @@ print_int_loop:
 	jmp print_int_loop
 print_int_print:
 	mov rdx, r9
-	mov rax, 1 ; syscall write
-	mov rdi, 1 ; stdout
+	mov rax, SYS_WRITE
+	mov rdi, STD_OUT
 	syscall
 print_int_exit:
 	add rsp, 32
@@ -94,9 +138,9 @@ print_ln:
 	mov rsi, rsp
 	mov BYTE [rsi], 10
 	
-	mov rax, 1 ; syscall write
-	mov rdx, 1 ; 1 byte
-	mov rdi, 1 ; stdout
+	mov rax, SYS_WRITE
+	mov rdx, 1
+	mov rdi, STD_OUT
 	syscall
 	add rsp, 8
 	pop r15
@@ -115,13 +159,15 @@ print_ln:
 	pop rax
 	ret
 
+global _start
 global main
+_start:
 main:
     push r12 ; align the stack by 16
 	push r13
 	push r14
 
-	mov rax, 12				;
+	mov rax, SYS_BRK		;
 	mov rdi, 0				;
 	syscall					;
 	mov [initial_brk], rax	; Get initial brk
@@ -131,17 +177,17 @@ main:
 	call read_file
 	call parse_file
 
-	mov rax, 11 ; syscall munmap
+	mov rax, SYS_MUNMAP
 	mov rdi, [buffer]
 	mov rsi, [len]
 	syscall
 	
 	
-	mov rcx, 9 * 8 * 100    ; 1 node -> 9 * 8 bytes, start with 100 nodes capacity
+	mov rcx, NODE_SIZE * 100
 	call inc_brk 	
 	mov rcx, [prev_brk]
 	mov [to_visit], rcx
-	mov QWORD [to_visit_cap], 100 * 9 * 8
+	mov QWORD [to_visit_cap], NODE_SIZE * 100
 
 	
 	mov r12, 0
@@ -155,7 +201,7 @@ main_first_loop:
 	call find_best
 	mul r13
 	add r12, rax
-	add rdi, 96
+	add rdi, BLUEPRINT_SIZE
 	cmp r13, [blueprints_len]
 	jl main_first_loop
 	mov rdi, r12
@@ -167,13 +213,13 @@ main_first_loop:
 	mov rsi, 32
 	call find_best
 	mov r12, rax
-	add rdi, 96
+	add rdi, BLUEPRINT_SIZE
 	call find_expensive
 	mov rsi, 32
 	call find_best
 	mul r12
 	mov r12, rax
-	add rdi, 96
+	add rdi, BLUEPRINT_SIZE
 	call find_expensive
 	mov rsi, 32
 	call find_best
@@ -183,12 +229,17 @@ main_first_loop:
 	call print_int
 	call print_ln
 
+	mov rax, SYS_BRK
+	mov rdi, [initial_brk]
+	syscall
+
 main_exit:
 	pop r14
 	pop r13
 	pop r12
-	mov rax, [err]
-	ret
+	mov rax, SYS_EXIT
+	mov rdi, [err]
+	syscall
 	
 ; rdi = ptr to blueprint
 find_expensive:
@@ -251,35 +302,27 @@ affords_false:
 	
 add_robot:
 	push rdi
-	mov QWORD [rbx + 9 * 8], r13 		;ore_robots
-	mov QWORD [rbx + 8 + 9 * 8], r14	;clay_robots
-	mov QWORD [rbx + 16 + 9 * 8], r15	;obsidian_robots
-	mov QWORD [rbx + 24 + 9 * 8], rdx	;geoide_robots
-	mov QWORD [rbx + 32 + 9 * 8], r10	;ore
-	add QWORD [rbx + 32 + 9 * 8], r13	;ore += ore_robots
-	mov QWORD [rbx + 40 + 9 * 8], r11	;clay
-	add QWORD [rbx + 40 + 9 * 8], r14	;clay += clay_robots
-	mov QWORD [rbx + 48 + 9 * 8], r12	;obsidian
-	add QWORD [rbx + 48 + 9 * 8], r15	;obsidian += obsidian_robots
-	mov QWORD [rbx + 56 + 9 * 8], r9	;geoide
-	mov QWORD [rbx + 64 + 9 * 8], r8 	;time
+	mov QWORD [rbx + NODE_ORE_ROBOT + NODE_SIZE], 		r13
+	mov QWORD [rbx + NODE_CLAY_ROBOT + NODE_SIZE], 		r14
+	mov QWORD [rbx + NODE_OBSIDIAN_ROBOT + NODE_SIZE], 	r15
+	mov QWORD [rbx + NODE_GEODE_ROBOT + NODE_SIZE],		rdx
+	mov QWORD [rbx + NODE_ORE + NODE_SIZE],			 	r10
+	add QWORD [rbx + NODE_ORE + NODE_SIZE],				r13
+	mov QWORD [rbx + NODE_CLAY + NODE_SIZE],			r11
+	add QWORD [rbx + NODE_CLAY + NODE_SIZE], 			r14
+	mov QWORD [rbx + NODE_OBSIDIAN + NODE_SIZE], 		r12
+	add QWORD [rbx + NODE_OBSIDIAN + NODE_SIZE],		r15
+	mov QWORD [rbx + NODE_GEODE + NODE_SIZE], 			r9
+	mov QWORD [rbx + NODE_TIME + NODE_SIZE], 			r8
 
-	mov rdi, rdx
-
-	cmp rdx, 1
-	jl add_robot_check
-	;call print_int
-	;call print_ln
-	;call print_ln
-add_robot_check:
 	cmp rsi, 255
 	je add_robot_none
 	add rsi, rbx
-	add rsi, 9 * 8
+	add rsi, NODE_SIZE
 	add QWORD [rsi], 1
 add_robot_none:
 	cmp rbx, [to_visit_cap]
-	add rbx, 9 * 8
+	add rbx, NODE_SIZE
 	jl add_robot_exit
 	push r8
 	push r9
@@ -315,23 +358,23 @@ find_best:
 	mov QWORD [rbp - 8], 0 ; initalize best to 0
 
 	mov rbx, [to_visit]
-	mov QWORD [rbx], 1 			; ore robots 
-	mov QWORD [rbx + 8], 0		; clay robots
-	mov QWORD [rbx + 16], 0		; obsidian robots
-	mov QWORD [rbx + 24], 0		; geoide robots
-	mov QWORD [rbx + 32], 0		; ore
-	mov QWORD [rbx + 40], 0		; clay
-	mov QWORD [rbx + 48], 0		; obsidian
-	mov QWORD [rbx + 56], 0		; geoide
-	mov QWORD [rbx + 64], rsi	; time left
+	mov QWORD [rbx + NODE_ORE_ROBOT], 		1
+	mov QWORD [rbx + NODE_CLAY_ROBOT], 		0
+	mov QWORD [rbx + NODE_OBSIDIAN_ROBOT],	0
+	mov QWORD [rbx + NODE_GEODE_ROBOT],     0
+	mov QWORD [rbx + NODE_ORE], 			0
+	mov QWORD [rbx + NODE_CLAY], 			0
+	mov QWORD [rbx + NODE_OBSIDIAN], 		0
+	mov QWORD [rbx + NODE_GEODE], 			0
+	mov QWORD [rbx + NODE_TIME], 			rsi
 
 find_best_loop:
-	mov r8, [rbx + 64]		; r8 = prev_time - 1
-	sub r8, 1				;
-	mov r9, [rbx + 56] ;
-	add r9, [rbx + 24] ; r9 = geide + geoide_robot
+	mov r8, [rbx + NODE_TIME]
+	sub r8, 1
+	mov r9, [rbx + NODE_GEODE]
+	add r9, [rbx + NODE_GEODE_ROBOT]
 	
-	sub rbx, 9 * 8
+	sub rbx, NODE_SIZE
 	cmp r8, 0
 	jg find_best_loop_has_time
 	cmp r9, [rbp - 8]
@@ -344,71 +387,71 @@ find_best_loop_has_time:
 	mov rcx, rax ; 
 	shr rcx, 1	 ;
 	mov rax, r8
-	mul QWORD [rbx + 9 * 8 + 24] ; rax = time * geoide_robots
+	mul QWORD [rbx + NODE_SIZE + NODE_GEODE_ROBOT] ; rax = time * geoide_robots
 	add rcx, r9
 	add rcx, rax
 	cmp rcx, [rbp - 8]
 	jl find_best_continue		;  ((time)**2) // 2 < best - geides - geide_robots * time
-	mov r10, [rbx + 9 * 8 + 32]			; r10 = ore
-	mov r13, [rbx + 9 * 8]		; r13 = ore_robots
-	mov r11, [rbx + 9 * 8 + 40]		; r11 = clay
-	mov r14, [rbx + 9 * 8 + 8]		; r14 = clay_robots
-	mov r12, [rbx + 9 * 8 + 48]		; r12 = obsidian
-	mov r15, [rbx + 9 * 8 + 16]		; r15 = obsidian_robots
-	mov rdx, [rbx + 9 * 8 + 24]		; rdx = geide_robots
+	mov r10, [rbx + NODE_SIZE + NODE_ORE]
+	mov r11, [rbx + NODE_SIZE + NODE_CLAY]
+	mov r12, [rbx + NODE_SIZE + NODE_OBSIDIAN]
+	mov r13, [rbx + NODE_SIZE + NODE_ORE_ROBOT]
+	mov r14, [rbx + NODE_SIZE + NODE_CLAY_ROBOT]
+	mov r15, [rbx + NODE_SIZE + NODE_OBSIDIAN_ROBOT]
+	mov rdx, [rbx + NODE_SIZE + NODE_GEODE_ROBOT]
 find_best_loop_ore_robot:
 	mov rcx, r13
-	cmp rcx, [expensive]
+	cmp rcx, [expensive + ORE]
 	jge find_best_loop_clay_robot
 	mov rsi, 0
 	call affords
 	cmp rax, 0
 	je find_best_loop_clay_robot
 	; Add node with ore robot
-	sub r10, [rdi]
-	mov rsi, 0
+	sub r10, [rdi + BLUEPRINT_ORE + ORE]
+	mov rsi, NODE_ORE_ROBOT
 	call add_robot
-	add r10, [rdi]
+	add r10, [rdi + BLUEPRINT_ORE + ORE]
 find_best_loop_clay_robot:
 	mov rcx, r14
-	cmp rcx, [expensive + 8]
+	cmp rcx, [expensive + CLAY]
 	jge find_best_loop_orbsidan_robot
-	mov rsi, 24
+	mov rsi, BLUEPRINT_CLAY
 	call affords
 	cmp rax, 0
 	je find_best_loop_orbsidan_robot
 	; Add node with clay robot
-	sub r10, [rdi + 24]
-	mov rsi, 8
+	sub r10, [rdi + BLUEPRINT_CLAY + ORE]
+	mov rsi, NODE_CLAY_ROBOT
 	call add_robot
-	add r10, [rdi + 24]
+	add r10, [rdi + BLUEPRINT_CLAY + ORE]
 find_best_loop_orbsidan_robot:
 	mov rcx, r15
-	cmp rcx, [expensive + 16]
+	cmp rcx, [expensive + OBSIDIAN]
 	jge find_best_loop_geoide_robot
-	mov rsi, 48
+	mov rsi, BLUEPRINT_OBSIDIAN
 	call affords
 	cmp rax, 0
 	je find_best_loop_geoide_robot
 	; Add node with obsidian robot
-	sub r10, [rdi + 48]
-	sub r11, [rdi + 56]
-	mov rsi, 16
+	sub r10, [rdi + BLUEPRINT_OBSIDIAN + ORE]
+	sub r11, [rdi + BLUEPRINT_OBSIDIAN + CLAY]
+	mov rsi, NODE_OBSIDIAN_ROBOT
 	call add_robot
-	add r10, [rdi + 48]
-	add r11, [rdi + 56]
+	add r10, [rdi + BLUEPRINT_OBSIDIAN + ORE]
+	add r11, [rdi + BLUEPRINT_OBSIDIAN + CLAY]
 find_best_loop_geoide_robot:
-	mov rsi, 72
+	mov rsi, BLUEPRINT_GEODE
 	call affords
 	cmp rax, 0
 	je find_best_no_robot
 	; Add node with geoide robot
-	sub r10, [rdi + 72]
-	sub r12, [rdi + 88]
-	mov rsi, 24
+	sub r10, [rdi + BLUEPRINT_GEODE + ORE]
+	sub r12, [rdi + BLUEPRINT_GEODE + OBSIDIAN]
+	mov rsi, NODE_GEODE_ROBOT
 	call add_robot
-	add r10, [rdi + 72]
-	add r12, [rdi + 88]
+	add r10, [rdi + BLUEPRINT_GEODE + ORE]
+	add r12, [rdi + BLUEPRINT_GEODE + OBSIDIAN]
 find_best_no_robot:
 	; Add node with no extra robot
 	mov rcx, [expensive]
@@ -440,7 +483,7 @@ inc_brk:
 
 	mov rdi, [cur_brk]
 	mov [prev_brk], rdi
-	mov rax, 12
+	mov rax, SYS_BRK
 	add rdi, rcx
 	syscall
 	mov [cur_brk], rax
@@ -539,44 +582,44 @@ parse_file_exit:
 read_file:
 	sub	rsp, 8
 	
-	mov rax, 2 ; Open syscall
+	mov rax, SYS_OPEN
 	lea rdi, [input_file]
-	mov rsi, 0 ; O_RD_ONLY
+	mov rsi, O_RD_ONLY
 	mov rdx, 0
 	syscall
 	mov [fd], rax
 	
-	mov rax, 8 ; lseek syscall
+	mov rax, SYS_SEEK
 	mov rdi, [fd]
-	mov rsi, 0 ; offset = 0
-	mov rdx, 2 ; SEEK_END
+	mov rsi, 0
+	mov rdx, SEEK_END
 	syscall
 	mov [len], rax
 	
-	mov rax, 8 ; lseek syscall
+	mov rax, SYS_SEEK
 	mov rdi, [fd]
-	mov rsi, 0 ; offset = 0
-	mov rdx, 0 ; SEEK_SET
+	mov rsi, 0
+	mov rdx, SEEK_SET
 	syscall
     
-	mov rax, 9      ; syscall mmap    ALLOCATE [len] bytes of memory
-    xor rdi, rdi    ; addr = NULL
-    mov rsi, [len]  ; len = length of file
+	mov rax, SYS_MMAP
+    mov rdi, 0
+    mov rsi, [len]
 	inc rsi
-    mov rdx, 7      ; prot = PROT_READ|PROT_WRITE
-    mov r10, 34     ; flags = MAP_PRIVATE|MAP_ANONYMOUS
-    mov r8, -1     ; fd = -1
-    mov r9, 0    ; offset = 0
+    mov rdx, PROT_READ | PROT_WRITE
+    mov r10, MAP_PRIVATE | MAP_ANONYMOUS
+    mov r8, -1
+    mov r9, 0
     syscall
 	mov [buffer], rax
 
-	mov rax, 0 ; Read syscall
+	mov rax, SYS_READ
 	mov rdi, [fd]
-	mov rsi, [buffer] ; address of memory
+	mov rsi, [buffer]
 	mov rdx, [len]
 	syscall
 
-	mov rax, 3 ; Close syscall
+	mov rax, SYS_CLOSE
 	mov rdi, [fd]
 	syscall
 
