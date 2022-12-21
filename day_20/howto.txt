@@ -1,0 +1,3 @@
+cd /aoc/content
+tsc main.ts --strict --target es2016
+node main.js

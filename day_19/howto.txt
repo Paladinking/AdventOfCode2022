@@ -1,0 +1,4 @@
+cd /aoc/content
+nasm main.asm -felf64
+gcc main.o -o main
+./main
