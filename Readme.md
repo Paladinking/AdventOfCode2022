@@ -20,7 +20,7 @@ Day 15: C++
 Day 16: Zig  
 Day 17: Swift  
 Day 18: Python  
-Day 19: Assembly...  
+Day 19: Assembly  
 Day 20: Typescript  
 Day 21: C  
 Day 22: Vala  
