@@ -1,0 +1,3 @@
+cd /aoc/content
+gcc main.c -o main
+./main
