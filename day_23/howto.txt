@@ -1,0 +1,3 @@
+cd /aoc/content
+mcs main.cs
+mono main.exe
