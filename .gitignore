@@ -7,3 +7,4 @@ main
 erl_crash.dump
 *.jar 
 day_20/content/*.js 
+*.exe 
