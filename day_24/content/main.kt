@@ -61,11 +61,11 @@ fun explore(map: Array<ByteArray>, start : Point, goal : Point) : Pair<List<Node
         }
 
         for (i in neighborsX.indices) {
-            val x = neighborsX[i]
-            val y = neighborsY[i]
-            if (top.y + y < 0 || top.x + x < 0 || top.y + y >= map.size || top.x + x >= map[0].size) continue
-            if (maps[top.iteration][top.y + y][top.x + x] == EMPTY) {
-                queue.add(Node(top.x + x, top.y + y, top.iteration + 1, top))
+            val x = top.x + neighborsX[i]
+            val y = top.y + neighborsY[i]
+            if (y < 0 || x < 0 || y >= map.size || x >= map[0].size) continue
+            if (maps[top.iteration][y][x] == EMPTY) {
+                queue.add(Node(x, y, top.iteration + 1, top))
             }
         }
     }
