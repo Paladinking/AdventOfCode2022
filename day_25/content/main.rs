@@ -8,7 +8,7 @@ fn snafu_to_int(data : &[u8]) -> i64 {
 			b'-' => -1,
 			b'=' => -2,
 			b'0' | b'1' | b'2' => *num as i64 - b'0' as i64,
-			_ => unreachable!()
+			_ => panic!("Bad input value")
 		};
 		5 * sum + val
 	})
