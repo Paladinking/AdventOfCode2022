@@ -1,0 +1,2 @@
+cd /aoc/content
+./main.py
