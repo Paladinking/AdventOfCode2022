@@ -33,7 +33,7 @@ Day 25: Rust
 windows:  
 docker run --rm -it -v %cd%\day_x\content:/aoc/content -v %cd%\input:/aoc/input aoc_dayx
 mac / linux:  
-docker run --rm -it -v $PWD/day_x/content:/aoc/content -v $PWD/iput:/aoc/input aoc_dayx
+docker run --rm -it -v $PWD/day_x/content:/aoc/content -v $PWD/input:/aoc/input aoc_dayx
 
 # To build
 docker build day_x -t aoc_dayx
